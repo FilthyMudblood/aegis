@@ -1,0 +1,15 @@
+Directory layout
+================
+本文件夹即为唯一源码树（已不再使用重复的 public/ 子目录）。开发与运行都在此根目录进行。
+
+Optional proprietary layer
+==========================
+To use your full formulas locally, add these files (they are gitignored and will not be pushed):
+
+  aegis_private/metabolism.py   — HypothalamusEngine (dynamic pricing, priority decay, meltdown)
+  aegis_private/sensory.py      — calculate_fact_error_x
+  aegis_private/acc_logic.py    — ACC_ARBITRATION_WEIGHTS, calculate_compliance_deviation_y
+
+If any of these files are missing, imports fall back to aegis_*_open.py automatically.
+
+Never commit API keys: set OPENAI_API_KEY / OPENAI_API_BASE in the environment or via the Streamlit sidebar.

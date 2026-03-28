@@ -1,0 +1,6 @@
+streamlit>=1.28
+numpy
+pandas
+langgraph>=0.2
+langchain-openai>=0.2
+langchain-core>=0.2
