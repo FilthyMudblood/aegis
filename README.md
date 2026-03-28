@@ -42,3 +42,38 @@ graph TD
     Router -->|S < k| Pass[Output to Client]
     Router -->|k_warn <= S < k_fatal| Modulate[Internal Retries / Modulate]
     Router -->|S >= k_fatal| Suspend[Flush & Suspend]
+```
+
+## 5. Quick Start
+
+This repository runs a **real** Streamlit app and **LangGraph** graph (`aegis_backend.py`), not a separate mock script. Use the UI for end-to-end runs, or call nodes / the compiled graph from Python as below.
+
+```bash
+# Clone the repository
+git clone https://github.com/YourUsername/Aegis-Cortex.git
+cd Aegis-Cortex
+
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+
+# Optional if you prefer env vars over the Streamlit sidebar
+export OPENAI_API_KEY="sk-..."
+export OPENAI_API_BASE="https://api.example.com/v1"
+
+streamlit run app.py
+```
+
+## 6. Whitepaper & Research
+
+For a comprehensive theoretical breakdown of the governance algorithms, control theory models, and distributed systems integration, please read the full specification whitepaper:
+
+📄 **[Aegis: Enterprise AI Governance Runtime Specification (Zenodo)](https://zenodo.org/records/19254063)**
+
+## 7. License & Commercial Inquiries
+
+The architectural concepts, API specifications, and mock code in this repository are licensed under **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)**.
+
+This repository is strictly for non-commercial evaluation. For access to the production-ready high-concurrency engine, or to discuss AI Governance Architect roles and strategic enterprise consultations, please reach out directly.
+
+**Contact:** `muchenhe1007@gmail.com`
