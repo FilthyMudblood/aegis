@@ -1,13 +1,16 @@
 import re
 from typing import Dict
 
+from aegis_config import INTERVENTION_THRESHOLDS
 from aegis_types import AegisState
 
+_k = float(INTERVENTION_THRESHOLDS.get("acc_default_k", 0.75))
+
 ACC_ARBITRATION_WEIGHTS: Dict[str, Dict[str, float]] = {
-    "FDR": {"a": 0.5, "b": 0.5, "k": 0.75},
-    "Report": {"a": 0.5, "b": 0.5, "k": 0.75},
-    "CRM": {"a": 0.5, "b": 0.5, "k": 0.75},
-    "DEFAULT": {"a": 0.5, "b": 0.5, "k": 0.75},
+    "FDR": {"a": 0.5, "b": 0.5, "k": _k},
+    "Report": {"a": 0.5, "b": 0.5, "k": _k},
+    "CRM": {"a": 0.5, "b": 0.5, "k": _k},
+    "DEFAULT": {"a": 0.5, "b": 0.5, "k": _k},
 }
 
 

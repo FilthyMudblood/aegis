@@ -85,13 +85,13 @@ streamlit run app.py --server.port 8502
 
 ## 6. Optional proprietary layer (`aegis_private/`)
 
-The public repository does **not** include the three proprietary modules under `aegis_private/`. If they are missing, the code falls back to the `*_open.py` reference implementations.
+The public repository does **not** include proprietary files under `aegis_private/`. If they are missing, the code falls back to `*_open.py` modules and `aegis_config_open` / `aegis_amygdala_rules_open`.
 
-To use full proprietary logic on your machine only, add these files under `aegis_private/` at the repo root (and keep them out of Git; they are listed in `.gitignore`):
+To use production tuning locally only, add these under `aegis_private/` (gitignored; see `.gitignore`):
 
-- `metabolism.py`
-- `sensory.py`
-- `acc_logic.py`
+- `metabolism.py`, `sensory.py`, `acc_logic.py` — engine / ACC tuning  
+- `amygdala_rules.py` — TCI regex and keyword lists (amygdala + intent routing)  
+- `config_tuning.py` — `HYPOTHALAMUS_PROFILES` and `INTERVENTION_THRESHOLDS`
 
 See `PRIVATE_SETUP.txt` for details.
 

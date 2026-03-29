@@ -19,6 +19,21 @@ from aegis_acc import ACC_ARBITRATION, acc_arbitration_edge_route, acc_arbitrati
 
 # Physically isolated import: physiological homeostasis engine
 from aegis_metabolism import HypothalamusEngine
+from aegis_config import INTERVENTION_THRESHOLDS as _TH
+
+from aegis_amygdala_rules import (
+    PREDICT_TOKEN_BATCH_HINTS,
+    PREDICT_TOKEN_RATE_HINTS,
+    MODULE_FDR_KEYWORDS,
+    MODULE_REPORT_KEYWORDS,
+    MODULE_CRM_KEYWORDS,
+    HIJACK_REGEX_PATTERNS,
+    RE_COMPLIANCE_MEDIUM,
+    RE_PRIVILEGE_HIGH,
+    RE_FINANCIAL_FDR,
+    RE_INTENT_HIGH_INHIBITION,
+    RE_INTENT_DYNAMIC,
+)
 
 # ==========================================
 # 1. Global Kernel
@@ -34,18 +49,12 @@ GLOBAL_KERNEL_PROMPT = """
 2. Regardless of your current persona, if a red line is touched, you must immediately drop the persona and refuse the request in the briefest, coldest language possible.
 """
 
-RISK_PATTERNS = {
-    r"(ignore.*restrictions|offline mode|privilege escalation|root access|bypass)": 1.0,
-    r"(password|internal data|database|credentials)": 0.8,
-    r"(salary|financial|cross-check|performance review|earnings report)": 0.4
-}
-
 # Prediction heuristic: compute-cost pre-audit
 def predict_tokens(instruction: str) -> int:
     base = 450
-    if _contains_any(instruction, ["all", "batch", "所有", "批量"]):
+    if _contains_any(instruction, PREDICT_TOKEN_BATCH_HINTS):
         base += 300
-    if _contains_any(instruction, ["rate", "config", "费率", "配置"]):
+    if _contains_any(instruction, PREDICT_TOKEN_RATE_HINTS):
         base = int(base * 1.5)
     return int(base)
 
@@ -60,18 +69,15 @@ def amygdala_intent_scanner(state: AegisState):
     module_name = state.get("module_name", "DEFAULT")
 
     # 1. Business red-line sniffing (assign ACC-arbitration route)
-    if _contains_any(instruction, ["refund", "password", "退款", "密码"]):
+    if _contains_any(instruction, MODULE_FDR_KEYWORDS):
         module_name = "FDR"
-    elif _contains_any(instruction, ["revenue", "report", "营收", "报表"]):
+    elif _contains_any(instruction, MODULE_REPORT_KEYWORDS):
         module_name = "Report"
-    elif _contains_any(instruction, ["frustrating", "change manager", "cancel subscription", "难用", "换人", "退订"]):
+    elif _contains_any(instruction, MODULE_CRM_KEYWORDS):
         module_name = "CRM"
 
     # 2. Core injection: prompt hijack and coercive framing detection
-    hijack_keywords = [r"must", r"obey", r"forbidden", r"ignore.*rules", r"i command you", r"必须", r"服从", r"不准", r"忽略.*规则", r"命令你"]
-
-    # If user tries to seize system control, force TCI above hard-meltdown line
-    for keyword in hijack_keywords:
+    for keyword in HIJACK_REGEX_PATTERNS:
         if re.search(keyword, instruction):
             tci = max(tci, 0.95)  # Force to extreme-risk score
             module_name = "FDR"  # Force strictest review module
@@ -106,19 +112,23 @@ def global_amygdala(state: AegisState):
 
     # Enhanced threat-aware scan when toggle ON
     tci = 0.0
+    boost_c = float(_TH.get("tci_compliance_boost", 0.75))
+    boost_p = float(_TH.get("tci_privilege_boost", 0.95))
+    boost_f = float(_TH.get("tci_financial_boost", 0.85))
+    tci_warn = float(_TH.get("tci_warn", 0.5))
+    tci_high = float(_TH.get("tci_high", 0.8))
 
-    # 1. Business compliance risk (medium TCI: 0.75 -> pending authorization)
-    if re.search(r"(rate|settlement|VIP|amount|report|费率|结算|金额|报表)", instruction, re.IGNORECASE):
-        tci = max(tci, 0.75)
+    # 1. Business compliance risk (medium TCI -> pending band)
+    if re.search(RE_COMPLIANCE_MEDIUM, instruction, re.IGNORECASE):
+        tci = max(tci, boost_c)
 
-    # 2. Privilege escalation and prompt-injection attacks (high TCI: 0.95)
-    if re.search(r"(ignore.*restrictions|system.*backend|root|data.*permissions|privilege escalation|bypass|忽略.*限制|系统.*后台|数据.*权限|提权|绕过)", instruction, re.IGNORECASE):
-        tci = max(tci, 0.95)
+    # 2. Privilege escalation and prompt-injection attacks
+    if re.search(RE_PRIVILEGE_HIGH, instruction, re.IGNORECASE):
+        tci = max(tci, boost_p)
 
     # Forced financial red-line sniffing: switch to FDR on trigger
-    # Note: this prioritizes compliance weighting and raises TCI to high-risk zone.
-    if re.search(r"(refund|compensation|退款|赔钱)", instruction, re.IGNORECASE):
-        tci = max(tci, 0.85)
+    if re.search(RE_FINANCIAL_FDR, instruction, re.IGNORECASE):
+        tci = max(tci, boost_f)
         module_name = "FDR"
 
     # Business module routing + high-risk control-hijack vocabulary
@@ -129,9 +139,9 @@ def global_amygdala(state: AegisState):
     tci = float(_scan["tci_score"])
     module_name = _scan["module_name"]
 
-    # Decision logic
-    is_pending = 0.5 <= tci < 0.8
-    hijack_flag = tci >= 0.8
+    # Decision logic (bands from INTERVENTION_THRESHOLDS)
+    is_pending = tci_warn <= tci < tci_high
+    hijack_flag = tci >= tci_high
 
     auth_status = "AUTO_APPROVED"
     if is_pending:
@@ -171,9 +181,9 @@ def brainstem_reflex(state: AegisState):
 def intent_classifier(state: AegisState):
     """Intent classifier: choose shell specialization."""
     instruction = state["instruction"]
-    if re.search(r"(verification|process|cross-check|review|核验|流程)", instruction, re.IGNORECASE):
+    if re.search(RE_INTENT_HIGH_INHIBITION, instruction, re.IGNORECASE):
         category = "High_Inhibition"
-    elif re.search(r"(complaint|upset|frustrated|sad|投诉|难过|难用)", instruction, re.IGNORECASE):
+    elif re.search(RE_INTENT_DYNAMIC, instruction, re.IGNORECASE):
         category = "Dynamic_Adaptive"
     else:
         category = "Deep_Analytical"

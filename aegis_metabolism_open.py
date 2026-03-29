@@ -2,13 +2,13 @@ import time
 from collections import deque
 from typing import Dict, Tuple
 
-from aegis_config import HYPOTHALAMUS_PROFILES
+from aegis_config import HYPOTHALAMUS_PROFILES, INTERVENTION_THRESHOLDS
 
 
 class HypothalamusEngine:
     """
     Open-reference metabolism scheduler: same public API as the proprietary engine,
-    with simplified linear heuristics (suitable for demos and CI without private modules).
+    with simplified linear heuristics and lenient thresholds from INTERVENTION_THRESHOLDS.
     """
 
     def __init__(self, profile_name: str = "CONSERVATIVE", base_budget: int = 2000):
@@ -23,7 +23,11 @@ class HypothalamusEngine:
         self.effective_tokens = 0.0
         self.base_score = 100.0
         self.k_penalty = 1.0
-        self.survival_threshold = 20.0
+        th = INTERVENTION_THRESHOLDS
+        self.survival_priority_floor = float(th.get("survival_priority_floor", 8.0))
+        self.d2h_meltdown = float(th.get("d2h_meltdown", -0.40))
+        # Composite H below this (fraction of nominal scale) => catastrophic homeostasis collapse
+        self.h_catastrophe_floor = float(th.get("survival_threshold", 0.30))
         self.current_priority = 100.0
         self.grace_period_tokens = 75
 
@@ -89,8 +93,10 @@ class HypothalamusEngine:
         instability_index = error_rate * 0.5 + min(retries, 5) / 5.0 * 0.5
         self.current_priority = self.base_score * max(0.0, 1.0 - self.k_penalty * instability_index)
 
-        if self.current_priority < self.survival_threshold:
+        if self.current_priority < self.survival_priority_floor:
             return "HARD_MELTDOWN"
-        if d2h <= -0.15:
+        if d2h <= self.d2h_meltdown:
+            return "HARD_MELTDOWN"
+        if h < self.h_catastrophe_floor:
             return "HARD_MELTDOWN"
         return "NORMAL"

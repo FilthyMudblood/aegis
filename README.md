@@ -102,9 +102,22 @@ For a comprehensive theoretical breakdown of the governance algorithms, control 
 
 ## 7. License & Commercial Inquiries
 
-The architectural concepts, API specifications, and open-reference code in this repository are licensed under **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)**.
+The architectural concepts, API specifications, and the orchestration code in this repository are licensed under **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)**. 
 
-This repository is strictly for non-commercial evaluation. For access to the production-ready high-concurrency engine, or to discuss AI Governance Architect roles and strategic enterprise consultations, please reach out directly.
+### Open Reference vs. Private Engine (The Open-Core Strategy)
+To align with the theoretical frameworks published in the whitepaper while protecting the proprietary high-concurrency engine, this repository utilizes an **Open Reference Fallback** mechanism. 
+
+When you run this repository, the system executes using the public `_open.py` modules. It fully implements the LangGraph state machine, the Zero-Token Firewall, and the structural equations exactly as described in the whitepaper (e.g., `TCI = α * Match_Density + β * Pattern_Severity` and `S = ax + by`).
+
+However, the production-grade intelligence located in the `.gitignore`d `private/` directory is excluded. Specifically, the open version utilizes baseline approximations:
+* **Structural Formulas over Dynamic Adaptation:** The open version uses **static default weights** ($\alpha, \beta, a, b$) and lightweight regex matching. The private engine utilizes dynamic adaptive weighting, deep semantic matrices, and cross-validation pipelines.
+* **Metabolic Scheduling:** The open version uses basic token-per-second tracking, whereas the private engine deploys the full "Dynamic Fluctuation Pricing" and non-linear exponential decay algorithms.
+
+**Therefore, while the architectural control flow is 100% identical to the whitepaper, the exact interception latency, sensitivity, and meltdown thresholds in your local clone will differ from the production benchmarks.**
+
+### Requesting Private Access
+This repository is strictly for non-commercial evaluation and architectural demonstration. 
+
+If you are an enterprise infrastructure leader, cloud architect, or a recruiter interested in evaluating the proprietary adaptive algorithms, dynamic weight matrices, and the full production-grade engine, **please reach out to me directly to request access to the `private` core modules.**
 
 **Contact:** `muchenhe1007@gmail.com`
-

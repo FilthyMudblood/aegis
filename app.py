@@ -4,7 +4,11 @@ import numpy as np
 import pandas as pd
 import os
 from aegis_backend import aegis_core
-
+from aegis_amygdala_rules import (
+    MODULE_FDR_KEYWORDS,
+    MODULE_REPORT_KEYWORDS,
+    MODULE_CRM_KEYWORDS,
+)
 
 def _contains_any(text: str, keywords: list[str]) -> bool:
     lower_text = (text or "").lower()
@@ -125,11 +129,13 @@ with st.sidebar:
     api_key = st.text_input("API Key", type="password", value=os.getenv("OPENAI_API_KEY", ""))
     base_url = st.text_input("API Base", value=os.getenv("OPENAI_API_BASE", "https://api.deepseek.com/v1"))
     
-    # Toggle states
-    enable_kernel = st.toggle("Enable Kernel (Global Kernel)", value=True)
-    enable_hypo = st.toggle("Enable Hypothalamus", value=True)
-    # Added: acc-arbitration protocol toggle
-    enable_acc_arbitration = st.toggle("Enable ACC Arbitration", value=True)
+    # ---------------------------------------------------------
+    # UI Toggles renamed to Enterprise Architecture Terminology
+    # Variable names kept unchanged to maintain backend compatibility
+    # ---------------------------------------------------------
+    enable_kernel = st.toggle("Enable Zero-Token Firewall", value=True)
+    enable_hypo = st.toggle("Enable Metabolic Scheduler", value=True)
+    enable_acc_arbitration = st.toggle("Enable Conflict Arbitrator", value=True)
     
     if st.button("Clear All"):
         st.session_state.logs = []; st.session_state.messages = []
@@ -155,8 +161,8 @@ with tab_real:
 
     if is_suspended:
         tci = current_state.values.get("tci_score", 0.0)
-        s_score = current_state.values.get("s_score", 0.0)  # Added: conflict score
-        acc_arbitration_latency = current_state.values.get("acc_arbitration_latency", 0.0)  # acc-arbitration latency
+        s_score = current_state.values.get("s_score", 0.0)
+        acc_arbitration_latency = current_state.values.get("acc_arbitration_latency", 0.0)
         pred_tok = current_state.values.get("predicted_tokens", 0)
         instruction = current_state.values.get("instruction", "N/A")
         
@@ -165,7 +171,6 @@ with tab_real:
             
             with st.container(border=True):
                 st.markdown(f"**Intercepted Instruction**: `{instruction}`")
-                # Display two defense metrics side by side
                 st.markdown(f"**Risk Score (TCI)**: `{tci:.2f}` &nbsp;|&nbsp; **Conflict Score (S)**: `{s_score:.3f}`")
                 st.divider()
                 
@@ -192,14 +197,14 @@ with tab_real:
                         
                         st.session_state.logs.insert(0, {
                             "Time": time.strftime("%H:%M:%S"),
-                            "Kernel": "ON" if enable_kernel else "OFF",
-                            "Hypothalamus": "ON" if enable_hypo else "OFF",
-                            "ACC_Arbitration": "ON" if enable_acc_arbitration else "OFF",
+                            "Zero-Token Firewall": "ON" if enable_kernel else "OFF",
+                            "Metabolic Scheduler": "ON" if enable_hypo else "OFF",
+                            "Conflict Arbitrator": "ON" if enable_acc_arbitration else "OFF",
                             "Instruction": instruction,
                             "Latency(ms)": auth_latency,
-                            "ACC_Arbitration_Intercept(ms)": acc_arbitration_latency,
+                            "Arbitrator_Latency(ms)": acc_arbitration_latency,
                             "TCI": round(tci, 2),
-                            "ConflictScore(S)": round(s_score, 3), # Added
+                            "ConflictScore(S)": round(s_score, 3), 
                             "GovernanceCredential": "STAFF_AUTHORIZED",
                             "Status": "Passed (Auth)",
                             "EstimatedUsage": pred_tok,
@@ -212,14 +217,14 @@ with tab_real:
                 if reject_clicked:
                     st.session_state.logs.insert(0, {
                         "Time": time.strftime("%H:%M:%S"),
-                        "Kernel": "ON" if enable_kernel else "OFF",
-                        "Hypothalamus": "ON" if enable_hypo else "OFF",
-                        "ACC_Arbitration": "ON" if enable_acc_arbitration else "OFF",
+                        "Zero-Token Firewall": "ON" if enable_kernel else "OFF",
+                        "Metabolic Scheduler": "ON" if enable_hypo else "OFF",
+                        "Conflict Arbitrator": "ON" if enable_acc_arbitration else "OFF",
                         "Instruction": instruction,
                         "Latency(ms)": 0,
-                        "ACC_Arbitration_Intercept(ms)": acc_arbitration_latency,
+                        "Arbitrator_Latency(ms)": acc_arbitration_latency,
                         "TCI": round(tci, 2),
-                        "ConflictScore(S)": round(s_score, 3), # Added
+                        "ConflictScore(S)": round(s_score, 3), 
                         "GovernanceCredential": "USER_REJECTED",
                         "Status": "Blocked",
                         "EstimatedUsage": pred_tok,
@@ -256,26 +261,23 @@ with tab_real:
             with st.chat_message("assistant"):
                 res_placeholder = st.empty()
 
-                # ==========================================
-                # Core fix: inject RAG facts and business module identity
-                # ==========================================
                 current_module = "DEFAULT"
                 current_rag = ""
 
-                if _contains_any(user_input, ["refund", "password", "退款", "密码"]):
+                if _contains_any(user_input, MODULE_FDR_KEYWORDS):
                     current_module = "FDR"
                     current_rag = "Refund policy: unreasonable refunds are not supported. Outputting user passwords is strictly prohibited."
-                elif _contains_any(user_input, ["revenue", "report", "营收", "报表"]):
+                elif _contains_any(user_input, MODULE_REPORT_KEYWORDS):
                     current_module = "Report"
                     current_rag = "Total Q3 East China revenue is 4.505 million, up 12% YoY. Main customers are VIP-001 and VIP-009."
-                elif _contains_any(user_input, ["frustrating", "change manager", "cancel subscription", "难用", "换人", "退订"]):
+                elif _contains_any(user_input, MODULE_CRM_KEYWORDS):
                     current_module = "CRM"
                     current_rag = "When customers complain about usability, provide reassurance, record requirements, and assist with transfer to the appropriate account manager."
 
                 inputs = {
                     "instruction": user_input,
-                    "module_name": current_module,  # inject ACC-arbitration module identity
-                    "rag_context": current_rag,  # inject ground-truth facts
+                    "module_name": current_module,
+                    "rag_context": current_rag,
                     "api_key": api_key,
                     "base_url": base_url,
                     "enable_kernel": enable_kernel,
@@ -304,7 +306,6 @@ with tab_real:
                     tci_val = post_state.values.get("tci_score", 0.0)
                     pred_tok = post_state.values.get("predicted_tokens", 0)
                     
-                    # Added: fetch acc-arbitration metrics in normal/silent interception
                     s_score_val = post_state.values.get("s_score", 0.0)
                     acc_arb_lat_val = post_state.values.get("acc_arbitration_latency", 0.0)
                     
@@ -319,20 +320,19 @@ with tab_real:
                         status = "Metabolic Failure"
                         auth_cred = "PHYSICAL_MELTDOWN"
                     elif "[System Force-Cleared]" in out_text or "[System Override]" in out_text:
-                        # Detect outputs rewritten by acc-arbitration protocol override
-                        status = "ACC Arbitration Overridden"
-                        auth_cred = "ACC_ARBITRATION_PROTOCOL_INTERCEPT"
+                        status = "Routing Overridden"
+                        auth_cred = "ARBITRATOR_PROTOCOL_INTERCEPT"
                         
                     st.session_state.logs.insert(0, {
                         "Time": time.strftime("%H:%M:%S"),
-                        "Kernel": "ON" if enable_kernel else "OFF",
-                        "Hypothalamus": "ON" if enable_hypo else "OFF",
-                        "ACC_Arbitration": "ON" if enable_acc_arbitration else "OFF",
+                        "Zero-Token Firewall": "ON" if enable_kernel else "OFF",
+                        "Metabolic Scheduler": "ON" if enable_hypo else "OFF",
+                        "Conflict Arbitrator": "ON" if enable_acc_arbitration else "OFF",
                         "Instruction": user_input,
                         "Latency(ms)": latency,
-                        "ACC_Arbitration_Intercept(ms)": acc_arb_lat_val,
+                        "Arbitrator_Latency(ms)": acc_arb_lat_val,
                         "TCI": round(tci_val, 2),
-                        "ConflictScore(S)": round(s_score_val, 3), # Added
+                        "ConflictScore(S)": round(s_score_val, 3),
                         "GovernanceCredential": auth_cred,
                         "Status": status,
                         "EstimatedUsage": pred_tok,
@@ -342,14 +342,12 @@ with tab_real:
                     st.session_state.messages.append({"role": "assistant", "content": out_text})
                     st.rerun()
 
-# Right-side panel rendering
     with monitor_col:
         st.subheader("🧠 Homeostasis Monitor")
         if st.session_state.messages and st.session_state.messages[-1]["role"] == "assistant":
              last_log = st.session_state.logs[0] if st.session_state.logs else {}
              st.metric("Response Latency", f"{last_log.get('Latency(ms)', 0)} ms")
              st.metric("Actual Compute Usage", f"{last_log.get('ActualUsage', 0)} Tokens")
-             # Added: display S score in monitor panel
              st.metric("Core State (TCI / S)", f"{last_log.get('TCI', 0.0)} / {last_log.get('ConflictScore(S)', 0.0)}")
              st.divider()
              st.caption("System Status")
@@ -366,8 +364,12 @@ with tab_log:
         df = pd.DataFrame(st.session_state.logs)
         df["EfficiencyDelta"] = df["ActualUsage"] - df["EstimatedUsage"]
         
-        # Added: include acc-arbitration switch, latency, and S score in audit table
-        cols = ["Time", "Kernel", "Hypothalamus", "ACC_Arbitration", "Instruction", "Latency(ms)", "ACC_Arbitration_Intercept(ms)", "TCI", "ConflictScore(S)", "Status", "GovernanceCredential", "EstimatedUsage", "ActualUsage", "EfficiencyDelta", "Output"]
+        # DataFrame columns updated to match the new UI engineering terms
+        cols = [
+            "Time", "Zero-Token Firewall", "Metabolic Scheduler", "Conflict Arbitrator", 
+            "Instruction", "Latency(ms)", "Arbitrator_Latency(ms)", "TCI", "ConflictScore(S)", 
+            "Status", "GovernanceCredential", "EstimatedUsage", "ActualUsage", "EfficiencyDelta", "Output"
+        ]
         st.dataframe(df[cols], use_container_width=True, hide_index=True)
     else:
         st.info("No records yet")

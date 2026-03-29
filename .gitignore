@@ -2,3 +2,5 @@
 aegis_private/metabolism.py
 aegis_private/sensory.py
 aegis_private/acc_logic.py
+aegis_private/amygdala_rules.py
+aegis_private/config_tuning.py

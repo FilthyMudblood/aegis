@@ -4,14 +4,16 @@ This folder is the single source tree for the project (there is no separate publ
 
 Optional proprietary layer
 ==========================
-To use your full formulas locally, add these files (they are gitignored and will not be pushed):
+To use production tuning locally, add these files under aegis_private/ (they are gitignored and will not be pushed):
 
-  aegis_private/metabolism.py   — HypothalamusEngine (dynamic pricing, priority decay, meltdown)
-  aegis_private/sensory.py      — calculate_fact_error_x
-  aegis_private/acc_logic.py    — ACC_ARBITRATION_WEIGHTS, calculate_compliance_deviation_y
+  aegis_private/metabolism.py       — HypothalamusEngine (full formulas)
+  aegis_private/sensory.py          — calculate_fact_error_x
+  aegis_private/acc_logic.py        — ACC weights and compliance probe
+  aegis_private/amygdala_rules.py   — TCI / amygdala regex and keyword lists (module routing, hijack patterns, intent classifier)
+  aegis_private/config_tuning.py    — HYPOTHALAMUS_PROFILES and INTERVENTION_THRESHOLDS
 
-If any of these files are missing, imports fall back to aegis_*_open.py automatically.
+If any file is missing, imports fall back to the matching *_open.py module or aegis_config_open / aegis_amygdala_rules_open.
 
 Never commit API keys: set OPENAI_API_KEY / OPENAI_API_BASE in the environment or via the Streamlit sidebar.
 
-When publishing to GitHub: keep .gitignore at the repo root so the proprietary files under aegis_private/ stay local-only; no second export folder is required.
+When publishing to GitHub: keep .gitignore at the repo root so proprietary files under aegis_private/ stay local-only; no second export folder is required.
