@@ -1,6 +1,6 @@
 Directory layout
 ================
-本文件夹即为唯一源码树（已不再使用重复的 public/ 子目录）。开发与运行都在此根目录进行。
+This folder is the single source tree for the project (there is no separate public/ copy to maintain). Develop and run from this repository root.
 
 Optional proprietary layer
 ==========================
@@ -13,3 +13,5 @@ To use your full formulas locally, add these files (they are gitignored and will
 If any of these files are missing, imports fall back to aegis_*_open.py automatically.
 
 Never commit API keys: set OPENAI_API_KEY / OPENAI_API_BASE in the environment or via the Streamlit sidebar.
+
+When publishing to GitHub: keep .gitignore at the repo root so the proprietary files under aegis_private/ stay local-only; no second export folder is required.

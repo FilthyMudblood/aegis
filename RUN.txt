@@ -1,6 +1,6 @@
-在本目录（项目根）运行：
+Run from this directory (repository root):
 
   pip install -r requirements.txt
   streamlit run app.py
 
-公开到 GitHub 时：在仓库根使用 .gitignore，专有文件放在 aegis_private/ 且已被忽略即可，无需再维护一份 public 副本。
+For GitHub: use .gitignore at the repo root; proprietary modules live under aegis_private/ and are ignored—no separate public/ snapshot is needed.

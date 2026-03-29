@@ -1,29 +1,41 @@
-# Aegis Cortex 部署指南
+# Aegis Cortex — Deployment Guide
 
-本文说明如何在本地或常见托管环境中运行本项目（Streamlit + LangGraph）。
-
----
-
-## 1. 环境要求
-
-- **Python**：建议 3.10 或 3.11（3.9 通常也可用，以你本机实测为准）。
-- **网络**：需能访问你配置的 LLM API（如 OpenAI 兼容端点）。
-- **磁盘**：少量依赖包与代码即可，无特殊要求。
+How to run this project locally or on common hosting targets. The app is a **Streamlit** UI on top of an in-process **LangGraph** workflow (`aegis_backend.py`).
 
 ---
 
-## 2. 获取代码
+## LangGraph: do I deploy it separately?
+
+**No.** LangGraph is a **Python package** listed in `requirements.txt`. It is installed with:
 
 ```bash
-git clone <你的仓库地址>
-cd Aegis_cortex_project   # 以你实际文件夹名为准；若名称含空格，注意加引号
+pip install -r requirements.txt
 ```
 
-若从压缩包解压，请进入**包含 `app.py` 与 `requirements.txt` 的那一层目录**作为项目根。
+The graph is compiled and executed **inside the same Python process** as Streamlit. There is no separate LangGraph server, database, or cluster to provision for this repository. (If you later add Redis/Postgres checkpointers for production, that would be optional infrastructure—not required for the default `MemorySaver` demo.)
 
 ---
 
-## 3. 虚拟环境（推荐）
+## 1. Requirements
+
+- **Python:** 3.10 or 3.11 recommended (3.9 often works; verify on your machine).
+- **Network:** Outbound HTTPS to your LLM API (OpenAI-compatible endpoint).
+- **Disk:** Standard; only dependencies and this repo.
+
+---
+
+## 2. Get the code
+
+```bash
+git clone https://github.com/FilthyMudblood/aegis.git
+cd aegis
+```
+
+If you use a ZIP download, `cd` into the directory that contains `app.py` and `requirements.txt` (repository root).
+
+---
+
+## 3. Virtual environment (recommended)
 
 ```bash
 python3 -m venv .venv
@@ -32,38 +44,38 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
+This installs Streamlit, LangGraph, LangChain OpenAI, and other dependencies in one step.
+
 ---
 
-## 4. 密钥与 API 配置
+## 4. API keys and base URL
 
-**切勿**把 API Key 写进代码或提交到 Git。
+**Never** commit API keys to Git.
 
-任选其一即可：
+| Method | Notes |
+|--------|--------|
+| **Environment variables** | Set `OPENAI_API_KEY` before starting. For a non-default endpoint, set `OPENAI_API_BASE` (OpenAI-compatible URL). |
+| **Streamlit sidebar** | After launch, use **API Key** / **API Base** in the sidebar (handy for local demos). |
 
-| 方式 | 说明 |
-|------|------|
-| **环境变量** | 启动前设置 `OPENAI_API_KEY`；若用非官方地址，再设 `OPENAI_API_BASE`（与 `aegis_backend` / LangChain 兼容即可）。 |
-| **Streamlit 界面** | 运行后在侧栏 **API Key** / **API Base** 中填写（适合本地演示）。 |
-
-示例（macOS / Linux）：
+Example (macOS / Linux):
 
 ```bash
 export OPENAI_API_KEY="sk-..."
-export OPENAI_API_BASE="https://api.example.com/v1"   # 按你的服务商填写
+export OPENAI_API_BASE="https://api.deepseek.com/v1"   # example; use your provider
 streamlit run app.py
 ```
 
 ---
 
-## 5. 本地运行
+## 5. Run locally
 
-在项目根目录执行：
+From the repository root:
 
 ```bash
 streamlit run app.py
 ```
 
-浏览器默认打开 `http://localhost:8501`。若需指定端口：
+Open the URL shown in the terminal (default `http://localhost:8501`). Custom port:
 
 ```bash
 streamlit run app.py --server.port 8502
@@ -71,69 +83,68 @@ streamlit run app.py --server.port 8502
 
 ---
 
-## 6. 专有逻辑层（可选）
+## 6. Optional proprietary layer (`aegis_private/`)
 
-公开仓库默认**不包含** `aegis_private/` 下的三个实现文件；未提供时自动使用 `aegis_*_open.py` 参考实现。
+The public repository does **not** include the three proprietary modules under `aegis_private/`. If they are missing, the code falls back to the `*_open.py` reference implementations.
 
-若你在**本机**要使用完整专有公式，请将以下文件放在项目根下的 `aegis_private/` 中（且确保它们已被 `.gitignore` 忽略，勿提交）：
+To use full proprietary logic on your machine only, add these files under `aegis_private/` at the repo root (and keep them out of Git; they are listed in `.gitignore`):
 
 - `metabolism.py`
 - `sensory.py`
 - `acc_logic.py`
 
-详见仓库内 `PRIVATE_SETUP.txt`。
+See `PRIVATE_SETUP.txt` for details.
 
 ---
 
-## 7. 部署到常见平台
+## 7. Common hosting options
 
 ### 7.1 Streamlit Community Cloud
 
-1. 将代码推送到 GitHub（勿包含密钥与专有 `aegis_private/*.py`）。
-2. 在 [Streamlit Cloud](https://streamlit.io/cloud) 连接仓库，**Main file** 填 `app.py`，**Root** 选项目根。
-3. 在 Cloud 的 **Secrets** 中配置，例如：
+1. Push the repo to GitHub: **https://github.com/FilthyMudblood/aegis** (no secrets, no proprietary `aegis_private/*.py`).
+2. In [Streamlit Cloud](https://streamlit.io/cloud), connect the repository, set **Main file** to `app.py`, **Root** to the project root.
+3. Under **Secrets**, for example:
 
    ```toml
    OPENAI_API_KEY = "sk-..."
    OPENAI_API_BASE = "https://..."
    ```
 
-4. 部署后用户在侧栏仍可改 Base；Key 建议仅放在 Secrets 中。
+4. Free tier has resource and sleep limits; assess for production separately.
 
-> 注意：免费层有资源与休眠策略，生产环境请自行评估。
+### 7.2 Your own server (VPS / internal)
 
-### 7.2 自有服务器（VPS / 内网）
+1. Install Python and Git, clone `https://github.com/FilthyMudblood/aegis.git`, create a venv, `pip install -r requirements.txt` (sections 2–3).
+2. Run Streamlit under **systemd**, **supervisor**, or similar, e.g.:
 
-1. 安装 Python 与 git，克隆仓库并创建虚拟环境（同第 2～3 节）。
-2. 使用 **systemd**、**supervisor** 或 **pm2**（配合 `streamlit run`）保持进程常驻，示例 systemd 思路：
-
-   - `WorkingDirectory` = 项目根  
+   - `WorkingDirectory` = repo root  
    - `ExecStart` = `/path/to/.venv/bin/streamlit run app.py --server.address 0.0.0.0 --server.port 8501`
 
-3. 前面用 **Nginx / Caddy** 做 HTTPS 反向代理到上述端口。
-4. 在服务器环境变量或密钥管理中设置 `OPENAI_API_KEY`，不要写进仓库。
+3. Terminate TLS with **Nginx** or **Caddy** in front of that port.
+4. Inject `OPENAI_API_KEY` via the environment or a secrets manager—never into the repo.
 
-### 7.3 Docker（自行编写镜像时）
+### 7.3 Docker (bring your own `Dockerfile`)
 
-仓库未内置 `Dockerfile` 时，可自行基于官方 Python 镜像：`COPY` 项目、`pip install -r requirements.txt`，`CMD` 使用 `streamlit run app.py --server.address 0.0.0.0`。构建时通过 `--build-arg` 或运行时 `-e` 注入密钥，**不要**把 Key 写进镜像层。
-
----
-
-## 8. 部署后检查清单
-
-- [ ] `git status` 中无 `aegis_private/metabolism.py` 等被忽略文件被误加入  
-- [ ] 仓库历史中无 API Key（若曾误提交，请轮换密钥并清理历史）  
-- [ ] 生产环境使用 HTTPS 与访问控制（若暴露公网）  
-- [ ] LLM 端点网络可达（服务器防火墙与出站策略）
+This repo does not ship a `Dockerfile`. A typical pattern: base image `python:3.11-slim`, `COPY` the app, `pip install -r requirements.txt`, `CMD` with `streamlit run app.py --server.address 0.0.0.0`. Pass secrets at runtime (`-e` / orchestrator secrets), not in image layers.
 
 ---
 
-## 9. 相关文件
+## 8. Post-deploy checklist
 
-| 文件 | 说明 |
-|------|------|
-| `RUN.txt` | 最短本地运行命令 |
-| `PRIVATE_SETUP.txt` | 专有层与 `.gitignore` 说明 |
-| `requirements.txt` | Python 依赖列表 |
+- [ ] `git status` does not stage ignored files such as `aegis_private/metabolism.py`
+- [ ] No API keys in git history (rotate keys if they were ever committed)
+- [ ] HTTPS and access control if exposed on the public internet
+- [ ] Outbound access from the host to the LLM API (firewall / egress rules)
 
-如有问题，请结合运行日志与 Streamlit 终端输出排查。
+---
+
+## 9. Related files
+
+| File | Purpose |
+|------|---------|
+| `RUN.txt` | Minimal local run commands |
+| `PRIVATE_SETUP.txt` | Proprietary layer and `.gitignore` |
+| `requirements.txt` | Python dependencies (includes LangGraph) |
+| `README.md` | Overview and quick start |
+
+Use Streamlit terminal output and logs if something fails to start or call the LLM.
