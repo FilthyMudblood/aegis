@@ -74,7 +74,7 @@ export OPENAI_API_BASE="https://api.example.com/v1"
 streamlit run app.py
 ```
 
-Open the URL printed in the terminal (default `http://localhost:8501`).
+Open the URL printed in the terminal.
 
 ### Example: intent / TCI routing (no LLM call)
 
