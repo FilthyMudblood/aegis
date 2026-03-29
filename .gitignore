@@ -1,0 +1,4 @@
+# Proprietary implementations — keep only on your machine; public clones use *_open fallbacks.
+aegis_private/metabolism.py
+aegis_private/sensory.py
+aegis_private/acc_logic.py
