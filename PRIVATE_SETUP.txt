@@ -7,8 +7,8 @@ Optional proprietary layer
 To use production tuning locally, add these files under aegis_private/ (they are gitignored and will not be pushed):
 
   aegis_private/metabolism.py       — HypothalamusEngine (full formulas)
-  aegis_private/sensory.py          — calculate_fact_error_x
-  aegis_private/acc_logic.py        — ACC weights and compliance probe
+  aegis_private/sensory.py          — calculate_fact_error_x (optional; not wired into public ACC — S = b*y + t*TCI in aegis_acc.py)
+  aegis_private/acc_logic.py        — ACC: b/t/k weights + calculate_compliance_deviation_y (y)
   aegis_private/amygdala_rules.py   — TCI / amygdala regex and keyword lists (module routing, hijack patterns, intent classifier)
   aegis_private/config_tuning.py    — HYPOTHALAMUS_PROFILES and INTERVENTION_THRESHOLDS
 

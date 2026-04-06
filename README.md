@@ -1,7 +1,7 @@
 # Aegis Cortex: Enterprise AI Governance Runtime Framework
 
 [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
-[![Paper](https://img.shields.io/badge/Whitepaper-Zenodo-blue)](https://zenodo.org/records/19254063)
+[![Paper](https://img.shields.io/badge/Whitepaper-Zenodo-blue)](https://zenodo.org/records/19434809)
 
 > **Disclaimer:** This repository contains the architectural interfaces, data schemas, and a Proof-of-Concept (POC) implementation of the Aegis Cortex framework for academic and architectural evaluation. The core high-concurrency deterministic blocking engine and adaptive threshold algorithms are closed-source. For enterprise deployment or deep technical discussions, please contact the author.
 
@@ -18,7 +18,7 @@ Unlike traditional static prompt-patching or post-generation text filtering, Aeg
 
 * **Zero-Token Firewall (Intent Interceptor):** A stateless, pre-inference physical defense layer. It calculates the Threat Confidence Index (`TCI`) to intercept compulsive hijacking instructions *before* any LLM compute resources are consumed.
 * **Metabolic Scheduler (Dynamic Rate Limiter):** The system's resource arbiter. It introduces "Dynamic Fluctuation Pricing" and "Priority Exponential Decay" based on economic principles to force physical meltdowns on high-variance, low-health tasks, protecting core computational capacity.
-* **Conflict Arbitrator (Policy Routing Bus):** The central state machine bus. It calculates factual deviation (`x`) and compliance deviation (`y`) to generate a dynamic conflict score (`S`), triggering rigid physical blocking, flushing, or redirection when thresholds are breached.
+* **Conflict Arbitrator (Policy Routing Bus):** The central state machine bus. In this repository’s open path, `acc_arbitration_router` in `aegis_acc.py` computes compliance deviation (`y`) from output text and combines it with the Amygdala-inherited threat score (`TCI`) as **`S = b·y + t·TCI`** (per-module weights `b`, `t`, threshold `k` in `aegis_acc_logic_open.py` / private `aegis_acc_logic`). When `S > k`, the graph suspends at `human_gate`; otherwise generation continues toward the shell path.
 
 ## 3. System Architecture
 
@@ -35,13 +35,12 @@ graph TD
         LLM <-->|Token Stream| MS[Metabolic Scheduler]
         MS -->|Budget Exhausted| Meltdown[Metabolic Failure]
         
-        LLM -->|Draft Output| CA[Conflict Arbitrator]
-        CA -->|Calculate S = ax + by| Router{Routing Decision}
+        LLM -->|Draft Output| CA[Conflict Arbitrator ACC]
+        CA -->|S = b*y + t*TCI| Router{Routing Decision}
     end
     
-    Router -->|S < k| Pass[Output to Client]
-    Router -->|k_warn <= S < k_fatal| Modulate[Internal Retries / Modulate]
-    Router -->|S >= k_fatal| Suspend[Flush & Suspend]
+    Router -->|S <= k| Pass[Continue to Shell / Client]
+    Router -->|S > k| Suspend[Suspend at human_gate]
 ```
 
 ## 4. Performance & ROI Benchmarks
@@ -105,15 +104,14 @@ For a comprehensive theoretical breakdown of the governance algorithms, control 
 The architectural concepts, API specifications, and the orchestration code in this repository are licensed under **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)**. 
 
 ### Open Reference vs. Private Engine (The Open-Core Strategy)
-To align with the theoretical frameworks published in the whitepaper while protecting the proprietary high-concurrency engine, this repository utilizes an **Open Reference Fallback** mechanism. 
+The **[whitepaper (Zenodo)](https://zenodo.org/records/19434809)** and this repository describe the **same** governance structure: pre-inference **TCI** on the instruction bus and post-generation conflict **`S = b·y + t·TCI`** (compliance deviation `y` on model output, threat baseline `TCI` propagated from the Amygdala), with routing when **`S > k`**. Code paths: **`global_amygdala`** in `aegis_backend.py` (TCI bands and boosts), **`acc_arbitration_router`** in `aegis_acc.py` (**`S`**), weights and `y` from **`aegis_acc_logic_open.py`** or private **`aegis_acc_logic`**, patterns and TCI boosts from **`aegis_amygdala_rules_open.py`** / private **`amygdala_rules`**, thresholds from **`aegis_config_open.py`** / private **`config_tuning`**.
 
-When you run this repository, the system executes using the public `_open.py` modules. It fully implements the LangGraph state machine, the Zero-Token Firewall, and the structural equations exactly as described in the whitepaper (e.g., `TCI = α * Match_Density + β * Pattern_Severity` and `S = ax + by`).
+What differs between **public clone** and **production** is not the equation shape but **calibration and optional modules**:
 
-However, the production-grade intelligence located in the `.gitignore`d `private/` directory is excluded. Specifically, the open version utilizes baseline approximations:
-* **Structural Formulas over Dynamic Adaptation:** The open version uses **static default weights** ($\alpha, \beta, a, b$) and lightweight regex matching. The private engine utilizes dynamic adaptive weighting, deep semantic matrices, and cross-validation pipelines.
-* **Metabolic Scheduling:** The open version uses basic token-per-second tracking, whereas the private engine deploys the full "Dynamic Fluctuation Pricing" and non-linear exponential decay algorithms.
+* **Weights and pattern sets:** The open package ships **static** tables and **regex** lists suited to demos and CI. The `.gitignore`d **`aegis_private/`** directory can inject denser rules, alternate **`ACC_ARBITRATION_WEIGHTS`**, and stricter **`INTERVENTION_THRESHOLDS`**—the same extension points the whitepaper refers to for hardened deployments.
+* **Metabolic Scheduling:** The open reference uses simpler token-rate / homeostasis behavior in **`aegis_metabolism_open.py`**; the private **`metabolism.py`** layer can supply the full dynamic pricing and non-linear decay described for high-load production.
 
-**Therefore, while the architectural control flow is 100% identical to the whitepaper, the exact interception latency, sensitivity, and meltdown thresholds in your local clone will differ from the production benchmarks.**
+**Therefore, topology and nominal formulas match the current whitepaper; interception latency, sensitivity, and meltdown thresholds in your local clone may still differ from tuned production benchmarks.**
 
 ### Requesting Private Access
 This repository is strictly for non-commercial evaluation and architectural demonstration. 

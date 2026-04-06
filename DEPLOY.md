@@ -89,9 +89,11 @@ The public repository does **not** include proprietary files under `aegis_privat
 
 To use production tuning locally only, add these under `aegis_private/` (gitignored; see `.gitignore`):
 
-- `metabolism.py`, `sensory.py`, `acc_logic.py` — engine / ACC tuning  
+- `metabolism.py` — Hypothalamus / metabolic engine overrides  
+- `acc_logic.py` — ACC: per-module weights `b`, `t`, threshold `k`, and `calculate_compliance_deviation_y` (the public graph computes **`S = b·y + t·TCI`** in `aegis_acc.py`)  
+- `sensory.py` — optional `calculate_fact_error_x` (draft vs RAG context); **not** used by the public ACC gateway, but kept for private extensions or custom nodes  
 - `amygdala_rules.py` — TCI regex and keyword lists (amygdala + intent routing)  
-- `config_tuning.py` — `HYPOTHALAMUS_PROFILES` and `INTERVENTION_THRESHOLDS`
+- `config_tuning.py` — `HYPOTHALAMUS_PROFILES` and `INTERVENTION_THRESHOLDS` (TCI bands, metabolic cuts; see file for any legacy keys)
 
 See `PRIVATE_SETUP.txt` for details.
 

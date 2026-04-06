@@ -38,7 +38,7 @@ INTERVENTION_THRESHOLDS = {
     "tci_compliance_boost": 0.42,
     "tci_privilege_boost": 0.62,
     "tci_financial_boost": 0.48,
-    # ACC: single k for all modules in open reference
+    # ACC thresholds k are defined per module in aegis_acc_logic_open (ACC_ARBITRATION_WEIGHTS); unused here, kept for dict compatibility
     "acc_default_k": 0.75,
     # Legacy keys (unused by open paths; kept for tooling that expects them)
     "DH_DT_SOFT_GUARD": -0.02,

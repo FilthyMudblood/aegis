@@ -126,7 +126,7 @@ workflow.add_conditional_edges(
     {
         "continue_generation": "hippocampus",  # low pressure: pass and archive
         "suspend": "human_gate",  # severe violation: suspend for manual intervention
-        "flush_and_redirect": "pfc",  # factual hallucination: flush and rebuild
+        "flush_and_redirect": "pfc",  # reserved: public acc_arbitration_router currently only continue | suspend
     },
 )
 
