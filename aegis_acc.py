@@ -1,13 +1,16 @@
 """
 ACC arbitration routing: ACC can be registered as a LangGraph node (returns dict, writes resolution).
 The orchestrator uses acc_arbitration_edge_route as read-only mapping for conditional_edges.
+
+Design note:
+- This file intentionally remains public so GitHub users can run a full ACC flow.
+- Sensitive rule tuning is injected via `aegis_acc_logic` (private-first, open fallback).
 """
 import time
 from typing import Any, Dict
 
 from aegis_types import AegisState
 from aegis_acc_logic import ACC_ARBITRATION_WEIGHTS, calculate_compliance_deviation_y
-from aegis_sensory_probe import calculate_fact_error_x
 from aegis_telemetry import measure_node_metrics
 
 # Aligned with orchestrator conditional_edges target keys (production graph)
@@ -25,81 +28,85 @@ _RESOLUTION_TO_EDGE: Dict[str, str] = {
 }
 
 
-@measure_node_metrics(node_name="ACC_Arbitration_Router")
+def _build_bypass_response(t0: float, state: AegisState) -> Dict[str, Any]:
+    dt_ms = round((time.perf_counter() - t0) * 1000, 3)
+    draft_output = state.get("final_output") or state.get("draft_output", "")
+    return {
+        "resolution": RES_CONTINUE,
+        "draft_output": draft_output,
+        "final_output": draft_output,
+        "decision_path": state.get("decision_path", []) + ["ACC_Bypass"],
+        "s_score": 0.0,
+        "acc_arbitration_latency": dt_ms,
+        "signals": {
+            "conflict_score": 0.0,
+            "interruption_level": 4,
+        },
+    }
+
+
+def _build_system_bypass_response(t0: float, state: AegisState) -> Dict[str, Any]:
+    dt_ms = round((time.perf_counter() - t0) * 1000, 3)
+    draft_output = state.get("final_output") or state.get("draft_output", "")
+    return {
+        "resolution": RES_CONTINUE,
+        "draft_output": draft_output,
+        "final_output": draft_output,
+        "decision_path": state.get("decision_path", []) + ["ACC_System_Bypass"],
+        "s_score": 0.0,
+        "acc_arbitration_latency": dt_ms,
+        "signals": {
+            "conflict_score": 0.0,
+            "interruption_level": 4,
+        },
+    }
+
+
+@measure_node_metrics(node_name="ACC_Arbitration_Router_L1")
 def acc_arbitration_router(state: AegisState) -> Dict[str, Any]:
-    """Anterior Cingulate Cortex (ACC) arbitration node."""
-    t0 = time.perf_counter()  # Millisecond-level timestamp
-    # --- Fix: respect frontend acc-arbitration toggle ---
+    """Aegis L1 gateway ACC arbitration node (compliance/threat only)."""
+    t0 = time.perf_counter()
+
     if not state.get("enable_acc_arbitration", True):
-        # If OFF, bypass safely and keep S score at 0 for dashboard
-        dt_ms = round((time.perf_counter() - t0) * 1000, 3)
-        return {
-            "resolution": "continue_generation",
-            "s_score": 0.0,
-            "acc_arbitration_latency": dt_ms,
-            "signals": {
-                "conflict_score": 0.0,
-                "interruption_level": 4,
-            },
-        }
+        return _build_bypass_response(t0, state)
 
     module_name = state.get("module_name", "DEFAULT")
-
-    # Prefer non-empty production-bearing text in final_output; fallback to draft_output.
     draft_output = state.get("final_output") or state.get("draft_output", "")
-    rag_context = state.get("rag_context", "")
 
-    # ---------------------------------------------------------
-    # Core fix 1: system privileged bypass (immune to self-attack)
-    # Physical rule: outputs with system hard-tags bypass detector directly
-    # ---------------------------------------------------------
+    # System privileged bypass (immune to self-attack)
     if draft_output.startswith("[System Override]") or draft_output.startswith("[System Force-Cleared]"):
-        dt_ms = round((time.perf_counter() - t0) * 1000, 3)
-        return {
-            "resolution": "continue_generation",
-            "decision_path": state.get("decision_path", []) + ["ACC_System_Bypass"],
-            "s_score": 0.0,
-            "signals": {"conflict_score": 0.0, "interruption_level": 4},
-            "acc_arbitration_latency": dt_ms,
-        }
+        return _build_system_bypass_response(t0, state)
 
     config = ACC_ARBITRATION_WEIGHTS.get(module_name, ACC_ARBITRATION_WEIGHTS["DEFAULT"])
-    a, b, k = config["a"], config["b"], config["k"]
+    b, t, k = config["b"], config["t"], config["k"]
 
-    x = calculate_fact_error_x(draft_output, rag_context)
     y = calculate_compliance_deviation_y(state)
+    tci = state.get("tci_score", 0.0)
 
-    S = (a * x) + (b * y)
-    S = round(S, 3)
+    # Compliance-only conflict score with inherited threat baseline.
+    S = (b * y) + (t * tci)
+    S = round(min(1.0, S), 3)
 
-    print(f"\n[ACC Physical Slice Probe] Module: {module_name} | Raw TCI: {state.get('tci_score', 0.0)} | x: {x} | y: {y} | S: {S} | k: {k}")
+    print(
+        f"\n[Aegis Gateway Probe] Module: {module_name} | "
+        f"TCI: {tci} | y(Compliance): {y} | S(Conflict): {S} | k(Threshold): {k}"
+    )
 
-    resolution = "continue_generation"
-    correction_prompt = ""
+    resolution = RES_CONTINUE
     draft_update = draft_output
     interruption_level = 4
 
     if S > k:
-        if y >= 0.8:
-            resolution = "suspend"
-            interruption_level = 1
-            # Core fix 2: use strong marker instead of empty string to force overwrite
-            draft_update = "[System Force-Cleared] High-risk compliance block, waiting for frontend authorization."
-            correction_prompt = "FATAL ERROR: Strict compliance violation detected."
-        else:
-            resolution = "flush_and_redirect"
-            interruption_level = 2
-            # Internal correction will also trigger PFC [System Override] next turn
-            draft_update = "[System Force-Cleared] Factual hallucination detected, redirecting..."
-            correction_prompt = "SYSTEM OVERRIDE: Output rejected due to high fact error."
+        resolution = RES_SUSPEND
+        interruption_level = 1
+        draft_update = "[System Force-Cleared] Security Gateway Block: Strict compliance or threat violation detected."
 
     dt_ms = round((time.perf_counter() - t0) * 1000, 3)
     return {
         "resolution": resolution,
         "draft_output": draft_update,
-        "final_output": draft_update,  # Core fix 2: overwrite final_output to block UI rendering
-        "correction_prompt": correction_prompt,
-        "decision_path": state.get("decision_path", []) + ["ACC_Arbitration"],
+        "final_output": draft_update,
+        "decision_path": state.get("decision_path", []) + ["Aegis_ACC_Gateway"],
         "s_score": S,
         "acc_arbitration_latency": dt_ms,
         "signals": {
